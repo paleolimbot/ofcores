@@ -1,17 +1,4 @@
 
-
-lithozones_example <- list(
-               name="Lithozones",
-               .breaks=data.frame(top=c(0, 5, 10, 20), bottom=c(5, 10, 20, 25),
-                                 name=c("Unit 1", "Unit 2", "Unit 3", "Unit 4"), stringsAsFactors = FALSE),
-               .info=data.frame(name=c("Unit 1", "Unit 1", "Unit 2", "Unit 2", "Unit 3", "Unit 3",
-                                      "Unit 4", "Unit 4"),
-                               param=rep(c("gs", "description"), 4),
-                               param.value=c("fg", "Clay, sandy.", "fg", "Clay, silty",
-                                             "cg", "Sand", "fg", "Silt, sandy"), stringsAsFactors = FALSE)
-               )
-class(lithozones_example) <- c("linseg", "list")
-
 #' Classify depths from linear segments
 #'
 #' @param linseg A \code{linseg} object (see \link{linseg})
@@ -69,6 +56,10 @@ linseg.classify <- function(linseg, depth, param="name", preference=c("upper", "
 #' @examples
 #' data(lithozones_example)
 #' linseg.param(lithozones_example, "Unit 1", "gs")
+#' linseg.param(lithozones_example, name="Unit 1")
+#' linseg.param(lithozones_example, param="gs")
+#' linseg.param(lithozones_example, param=c("gs", "fishing"), name=c("Unit 1", "Unit 8"))
+#' linseg.param(lithozones_example, param=c("gs", "fishing"))
 #'
 linseg.param <- function(linseg, name, param) {
   parammissing <- FALSE
@@ -81,7 +72,7 @@ linseg.param <- function(linseg, name, param) {
     param <- unique(linseg$.info$param)
     parammissing <- TRUE
   }
-  if(length(param == 1) && param == "name") {
+  if((length(param) == 1) && (param == "name")) {
     return(name)
   }
   rows <- linseg$.info[(linseg$.info$param %in% param) & (linseg$.info$name %in% name),]

@@ -2,25 +2,31 @@
 % Please edit documentation in R/linear_segments.R
 \name{linseg.param}
 \alias{linseg.param}
-\title{Get param values for linear segments}
+\title{Get or assign param values for linear segments}
 \usage{
 linseg.param(linseg, name, param)
 }
 \arguments{
 \item{linseg}{A \code{linseg} object (see \link{linseg})}
 
+\item{name}{The segment name(s) for which to return parameters}
+
 \item{param}{The parameter name to return}
 }
 \value{
-A character vector of param values, or a \code{list} if some params have
-        multiple values.
+A character vector of param values, or a \code{data.frame} if
+        multiple values are passed for name and param
 }
 \description{
-Get param values for linear segments
+Get or assign param values for linear segments
 }
 \examples{
 data(lithozones_example)
 linseg.param(lithozones_example, "Unit 1", "gs")
+linseg.param(lithozones_example, name="Unit 1")
+linseg.param(lithozones_example, param="gs")
+linseg.param(lithozones_example, param=c("gs", "fishing"), name=c("Unit 1", "Unit 8"))
+linseg.param(lithozones_example, param=c("gs", "fishing"))
 
 }
 
