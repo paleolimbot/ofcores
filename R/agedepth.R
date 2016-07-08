@@ -54,7 +54,7 @@ agedepth <- function(knowndepths, knownages, age_err=NA, extrapolate="average", 
   adfun <- function(depth, cols=c("depth", "age", "err", "type")) {
     foreach <- foreach::foreach
     `%do%` <- foreach::`%do%`
-
+    d <- NULL; rm(d) # CMD trick
     finaldf <- foreach(d=depth, .combine=rbind) %do% {
       if(d %in% df$depth) {
         age <- df$age[df$depth==d]

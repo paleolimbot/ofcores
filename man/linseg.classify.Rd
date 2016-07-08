@@ -12,9 +12,9 @@ linseg.classify(linseg, depth, param = "name", preference = c("upper",
 
 \item{depth}{A vector of depths to classify}
 
-\item{preference}{Preference for upper or lower unit should a depth match more than one unit.}
+\item{param}{The parameter to return (defaults to 'name')}
 
-\item{value}{The parameter to return (defaults to 'name')}
+\item{preference}{Preference for upper or lower unit should a depth match more than one unit.}
 }
 \value{
 A character or factor

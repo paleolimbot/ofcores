@@ -1,11 +1,18 @@
 Package: ofcores
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Core and Time Series Data Visualization and Formatting
 Version: 0.1
 Date: 2016-04-19
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Author: Authors@R: person("Dewey", "Dunnington", role = c("aut", "cre"),
+				email = "dewey@fishandwhistle.net")
+Maintainer: Dewey Dunnington <dewey@fishandwhistle.net>
+Description: Formatting and structuring core and time-series data is often a time-consuming
+  task. This package offers functions and data structures designed to easily visualize
+  core and time-series data for applications in geology, paleolimnology, dendrochronology,
+  and paleoclimate applications.
+Imports: foreach, reshape2
+Depends: R (>= 2.10)
+Suggests: ggplot2
+License: GPL-3
 LazyData: TRUE
 RoxygenNote: 5.0.1
