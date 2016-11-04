@@ -10,9 +10,8 @@ Description: Formatting and structuring core and time-series data is often a tim
   task. This package offers functions and data structures designed to easily visualize
   core and time-series data for applications in geology, paleolimnology, dendrochronology,
   and paleoclimate applications.
-Imports: foreach, reshape2
+Imports: foreach, reshape2, dplyr, ggplot2
 Depends: R (>= 2.10)
-Suggests: ggplot2
 License: GPL-3
 LazyData: TRUE
 RoxygenNote: 5.0.1
