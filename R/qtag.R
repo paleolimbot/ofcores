@@ -269,7 +269,7 @@ aggregate.qtag.wide <- function(x, ...) {
 #' library(ggplot2)
 #' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
 #' fortify(pocmaj)
-#' ggplot(pocmaj, aes(x=values, y=depth, col=core)) +
+#' ggplot(pocmaj, aes(x=values, y=depth, col=core)) + geom_point() +
 #'  scale_y_reverse() + facet_wrap(~column)
 #'
 fortify.qtag <- function(x, skip_aggregate=FALSE, ...) {
