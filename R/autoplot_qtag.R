@@ -84,7 +84,7 @@ autoplot.qtag.long <- function(x, xvar, yvar, facets, subset, ...) {
       mapping <- c(mapping, aes_(colour=as.name(nonnumqualifiers[nonnumindex])))
       nonnumindex <- nonnumindex - 1
     }
-    if((nonnumindex > 0) && !("shape" %in% names(mapping))) {
+    if((nonnumindex > 0) && !("linetype" %in% names(mapping))) {
       mapping <- c(mapping, aes_(shape=as.name(nonnumqualifiers[nonnumindex])))
       nonnumindex <- nonnumindex - 1
     }
@@ -96,13 +96,15 @@ autoplot.qtag.long <- function(x, xvar, yvar, facets, subset, ...) {
         errbarheight <- (nonvalrange[2]-nonvalrange[1]) / 50.0
         errorbars <- geom_errorbarh(aes_string(xmin=sprintf("%s-%s", xvar, "err"),
                                                xmax=sprintf("%s+%s", xvar, "err")),
-                                    height=errbarheight)
+                                    height=errbarheight,
+                                    linetype="solid")
       } else if(values == yvar) {
         nonvalrange <- range(x[xvar])
         errbarheight <- (nonvalrange[2]-nonvalrange[1]) / 50.0
         errorbars <- geom_errorbar(aes_string(ymin=sprintf("%s-%s", yvar, "err"),
                                               ymax=sprintf("%s+%s", yvar, "err")),
-                                   width=errbarheight)
+                                   width=errbarheight,
+                                   linetype="solid")
       }
     }
 
