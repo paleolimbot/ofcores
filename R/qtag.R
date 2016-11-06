@@ -48,8 +48,12 @@ qtag <- function(df, values, qualifiers, tags, summarised=FALSE, quiet=FALSE) {
     if(length(ignored) > 0) message("Ignoring columns ", paste0("'", ignored, "'", collapse=", "))
   }
 
+  return(.reclass(df, qualifiers, valuecol, tags, summarised))
+}
+
+.reclass <- function(df, qualifiers, values, tags, summarised) {
   attr(df, "qualifiers") <- qualifiers
-  attr(df, "values") <- valuecol
+  attr(df, "values") <- values
   attr(df, "tags") <- tags
   attr(df, "summarised") <- summarised
   if(length(valuecol) > 1) {
@@ -57,10 +61,104 @@ qtag <- function(df, values, qualifiers, tags, summarised=FALSE, quiet=FALSE) {
   } else {
     class(df) <- c("qtag.long", "qtag", class(df))
   }
-  return(df)
+  return(df[c(qualifiers, valuecol, tags)])
 }
 
+#' Extract value column names from a qualifier/tag structure
+#'
+#' @param x A \link{qtag} object
+#'
+#' @return A vector of value column names
+#' @export
+#'
+#' @examples
+#' data(pocmaj)
+#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' values(pocmaj)
+#'
+values <- function(x) {
+  return(attr(x, "values"))
+}
 
+#' Extract value qualifier names from a qualifier/tag structure
+#'
+#' @param x A \link{qtag} object
+#'
+#' @return A vector of qualifier column names
+#' @export
+#'
+#' @examples
+#' data(pocmaj)
+#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' qualifiers(pocmaj)
+#'
+qualifiers <- function(x) {
+  return(attr(x, "qualifiers"))
+}
+
+#' Extract tag column names from a qualifier/tag structure
+#'
+#' @param x A \link{qtag} object
+#'
+#' @return A vector of tag column names
+#' @export
+#'
+#' @examples
+#' data(pocmaj)
+#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' tags(pocmaj)
+#'
+tags <- function(x) {
+  return(attr(x, "tags"))
+}
+
+#' Extract value column data from a qualifier/tag structure
+#'
+#' @param x A \link{qtag} object
+#'
+#' @return A \link{data.frame} of value column data
+#' @export
+#'
+#' @examples
+#' data(pocmaj)
+#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' valuedata(pocmaj)
+#'
+valuedata <- function(x) {
+  return(x[values(x)])
+}
+
+#' Extract qualifier column data from a qualifier/tag structure
+#'
+#' @param x A \link{qtag} object
+#'
+#' @return A \link{data.frame} of qualifier column data
+#' @export
+#'
+#' @examples
+#' data(pocmaj)
+#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' qualifierdata(pocmaj)
+#'
+qualifierdata <- function(x) {
+  return(x[qualifiers(x)])
+}
+
+#' Extract tag column data from a qualifier/tag structure
+#'
+#' @param x A \link{qtag} object
+#'
+#' @return A \link{data.frame} of tag column data
+#' @export
+#'
+#' @examples
+#' data(pocmaj)
+#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' tagdata(pocmaj)
+#'
+tagdata <- function(x) {
+  return(x[tags(x)])
+}
 
 #' Convert data to long format
 #'
@@ -299,6 +397,7 @@ rbind.qtag.long <- function(...) {
   qualifiers <- unique(unlist(lapply(objs, attr, "qualifiers")))
   tags <- unique(unlist(lapply(objs, attr, "tags")))
   values <- unique(unlist(lapply(objs, attr, "values")))
+  summarised <- sapply(objs, attr, "summarised")
   if(length(values) != 1) {
     stop("Arguments have multiple values columns: ", paste0("'", values, "'", collapse=", "))
   }
@@ -307,6 +406,7 @@ rbind.qtag.long <- function(...) {
   attr(out, "qualifiers") <- qualifiers
   attr(out, "values") <- values
   attr(out, "tags") <- tags
+  attr(out, "summarised") <- all(summarised)
   return(out)
 }
 
@@ -347,6 +447,7 @@ replacecol.qtag <- function(x, ...) {
   attr(out, "qualifiers") <- replaceval(attr(x, "qualifiers"), replace)
   attr(out, "values") <- replaceval(attr(x, "values"), replace)
   attr(out, "tags") <- replaceval(attr(x, "tags"), replace)
+  attr(out, "summarised") <- attr(x, "summarised")
   class(out) <- class(x)
   return(out)
 }
