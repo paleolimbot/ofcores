@@ -4,7 +4,7 @@
 \alias{melt.parallel}
 \title{Melt multiple sets of columns in parallel}
 \usage{
-melt.parallel(x, id.vars, variable.name = "variable", ...,
+melt.parallel(x, id.vars, variable.name = "column", ...,
   factorsAsStrings = TRUE)
 }
 \arguments{
@@ -21,7 +21,7 @@ column name specified.}
 measure variables.}
 }
 \value{
-A melted \code{data.frame}
+A \code{qtag.long} object
 }
 \description{
 Essentially this is a wrapper around \code{reshape2::melt.data.frame} that

@@ -52,16 +52,17 @@ qtag <- function(df, values, qualifiers, tags, summarised=FALSE, quiet=FALSE) {
 }
 
 .reclass <- function(df, qualifiers, values, tags, summarised) {
+  df <- df[c(qualifiers, values, tags)]
   attr(df, "qualifiers") <- qualifiers
   attr(df, "values") <- values
   attr(df, "tags") <- tags
   attr(df, "summarised") <- summarised
-  if(length(valuecol) > 1) {
+  if(length(values) > 1) {
     class(df) <- c("qtag.wide", "qtag", class(df))
   } else {
     class(df) <- c("qtag.long", "qtag", class(df))
   }
-  return(df[c(qualifiers, valuecol, tags)])
+  return(df)
 }
 
 #' Extract value column names from a qualifier/tag structure
