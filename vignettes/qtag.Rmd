@@ -1,0 +1,108 @@
+---
+title: "Using qualifier/tag structures to manipulate multi-dimensional data"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+fig_captions: true
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+bibliography: biblio.bib
+---
+
+
+```{r, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+library(dplyr)
+library(reshape2)
+library(ggplot2)
+library(ofcores)
+```
+
+# Introduction
+
+Paleolimnological data by nature is complex and multidimensional, which makes the storage, visualization, and manipulation of such data inherently challenging. Dedicated programs such as C2 [@juggins_c2_2011], Tilla [@grimm_tillagraph_2002], the R package 'rioja' [@juggins_rioja], and the R package 'analogue' [@simpson_analogue] have attempted to ameliorate these issues, but the storage format can be inflexible and/or proprietary and can limit the exchange and replicability of statistical analyses. Dedicated plotting and analysis software (e.g. SigmaPlot) can be platform-specific and expensive depending on the product. The problems that each of these face is generally one or more of the following:
+
+1. **The storage format is proprietary and can only be opened by a single application.** If the raw data used is stored in a format that can only be opened by a single program (e.g. Microsoft Excel, Tilla, SigmaPlot), multiple copies of the data may have to be stored which increases the chance of accidental error occuring in the process of conversion and make keeping an updated copy of the data in all programs used more difficult.
+2. **The storage format is restrictive and does not allow the storage of error, non-detect, or other non-numeric data alongside quantitative observations.** Generally the format in which paleolimnilogical data are stored makes it difficult to store non-detect values, multiple values for a single depth, or error alongside the measured value for a parameter. For many cases (e.g. species assembledge with no error assessed) this does not present a problem, but for bulk geochemical studies of lake sediment, error is essential and reporting this data is made difficult by the inability to store error alongside the measured value.
+3. **The application is platform specific and is not available for Windows, Mac OSX, and/or Linux.** Until recently, Windows was considered the platform for scientific stoftware, but due to the adoption of software packages such as R [@r_core_team_r] and Python that operate across platforms, this is no longer the case. Using applications that are only available for a single platform restricts the ability to reproduce and/or redistribute results.
+
+This paper is an attempt to articulate **open-source**, **flexible**, and **platform-independent** data structures for paleolimnological data such that results can be reproduced and redistributed with minimal restrictions. This paper also attempts to provide examples of how these formats can be manipulated for the purposes of storage, analysis, and visualization, such that paleolimnologists can utilize readily available data manipulation tools to easily and flexibly create effective visualizations and robust numerical analysis.
+
+# Sample Data
+
+The sample data used for this paper is a subset of some X-Ray Fluorescence (XRF) metals data from a lake near Halifax, Nova Scotia. Values are in parts per million (ppm) and depths are in centimetres. The data contains values for several parameters over multiple cores including several replicates, and is a valid analog for larger, more complex datasets.
+
+```{r, echo=FALSE, results='hold', message=FALSE}
+data("pocmaj")
+data("pocmajpb210")
+pocmajqt <- qtag(pocmaj, qualifiers=c("core", "depth"))
+```
+
+# Data formats
+
+## Terminology
+
+Paleolimnological data is generally a list of **values**, each of which have a **core**, a **paramter**, and a **depth** (usually below lake bottom) that **qualify** what the **value** represents. This **value** could be a concentration if the **parameter** is a chemical compound, a count or a percentage if the **parameter** is a species, or a count per second if the **parameter** is a radioactive isotope, for example. The **core** is the sediment core the sample came from (or some identifier representing an amalgamation of such cores), and the **depth** describes the relative position the sediment came from within that core. The **value** may also have additional information that is relevant (e.g. stratigraphic unit or age) but these can usually be calculated using some combination of the **core**, **depth**, and **parameter** and will not be discussed in this paper. Each value may additionally have an arbitrary amount of information specific only to that value (e.g. sample identifier, error, notes on the obtaining of the value, etc.), which this paper will refer to as **tags**. Table 1 illustrates the relationship between **qualifiers**, **values**, and **tags**.
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(data.frame(Qualifiers="lake, core, depth, parameter, zone, unit",
+                        Values="concentration, count, decay rate",
+                        Tags="error, number of values, notes"),
+             caption="Examples of qualifiers, values, and tags specific to paleolimnological data.")
+```
+
+## Wide data formats
+
+Traditionally this information is represented as a matrix with a column for each **parameter**, a row for each **depth**, and each cell representing a value. In data science terminology, this is known as a **wide** data format. Any additional information about a specific value (e.g. sample identifier, error, etc.) can be represented in another matrix of the same size as that containing the values. Our sample data in this form for core MAJ-1 looks like the following:
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(aggregate(pocmajqt, mean), digits=1, caption="Values for core MAJ-1")
+```
+
+Even though there are replicates for some of the values, the matrix is only able to hold one value per cell. We can get around this by storing information like standard deviation and number of replicates in separate matricies of the same size, however this is not common.
+
+These matricies contain summarised data and are in a wide data format, and thus can be termed **summarised values matricies**. Because these matricies are the same size and can be thought as stacked on top of eachother, together they form a **values brick**, one of which is required for each **core**. The **values** matrix such as this is required as input for some graphing programs (e.g. spreadsheet software, rioja for R) and as input for numerical analysies (e.g. clustring, ordination), however getting the data in this format often takes several steps. More often the data is output (in this case by the benchtop XRF) in a 2-dimensional structure with one row per sample instead of one row per depth. For core MAJ-1 this looks like the following:
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(original_data %>% filter(core=="MAJ-1"), 
+             digits=1, 
+             caption="A values matrix for core MAJ-1")
+```
+
+Because this data is not yet summarised and can be represented in 2 dimensions, this data format can be considered an **values matrix**. It is possible to represent this format in a standard 2-dimensional spreadsheet even with data from multiple cores, although if some **parameters** are measured at some depths and not others this format becomes slightly less adaptable, especially when combined with some non-detect values. For all data with a common sampling frequency this format is ideal as it can also be used as input for ordination and clustering functions. If additional information about each particular value needs to be stored (e.g. notes on the value), it can be stored in a matrix of the same size in the same way as the **values brick** above, although this situation is less common.
+
+## Long data formats
+
+An alternative way of storing these data is a **long** data format, where parameter/value combinations are stored as rows, each of which are qualified with **core** and **depth**. The data for MAJ-1 represented this way would look like the following:
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(original_data_melted %>% filter(core=="MAJ-1") %>% head(), 
+             digits=1, 
+             caption="A values list for core MAJ-1.")
+```
+
+This data is in long format and contains raw (not summarised) data and can be termed a **values list**. This data format is highly flexible as it remains in 2 dimensions even if additional information is added about each value (in this case as another column instead of a parallel matrix). Replicates are easily accomadated as they are just additional rows with an identical core/depth/parameter combination, and non-detect values can be represented by including the row but assigning a non-numeric or missing value.
+
+Despite the fact that this format is flexible, it is still not particularly useful for any kind of graphing or numerical analysis. A variant on this type is able to store only unique core/depth/parameter combinations, summarised into separate columns. This type of output can be used with the `ggplot` framework (as implemented in R and Python) to produce downcore plots of the values. Because the data are summarised, this format can be termed a **summarised values list**.
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(original_data_melted_summarised %>% filter(core=="MAJ-1") %>% head(), 
+             digits=1, 
+             caption="A summarised values list for core MAJ-1.")
+```
+
+The wide and long data formats each have advantages for particular purposes as dicussed above. Important to note is that the summarised versions of the wide and long formats are **lossy**, in that the original data cannot be reconstructed once the data is in this format. This may be desirable for plotting or numerical analysis but is not conducive to storage since the original data have been modified and in the future alternative summary methods may be desired (e.g. treatment of outliers, confidence interval modelling). A summary of data formats is provided in Table 8.
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(data.frame(Format=c("values matrix", "summarised values matrix", "values list", "summarised values list"),
+                        Lossy=c("no", "yes", "no", "yes"),
+                        Parameters=c("are columns", "are columns", "are rows", "are rows"),
+                        Tags=c("in separate matrix of same size", "in separate matrix of same size", "as columns", "as columns")),
+             caption="Data formats summary.")
+```
+
+# Converting data formats
+
+In the past a barrier to storing data in an non-summarised format has been the inability to easily convert between these formats. Advances in data manipulation tools have removed this barrier, although the mechanics of this are slightly different in different data platforms. In this paper we will cover R, and Python, and Excel.
+
