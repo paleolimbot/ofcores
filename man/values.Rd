@@ -4,7 +4,7 @@
 \alias{values}
 \title{Extract value column names from a qualifier/tag structure}
 \usage{
-values(x)
+values(x, quiet = FALSE)
 }
 \arguments{
 \item{x}{A \link{qtag} object}
@@ -17,7 +17,7 @@ Extract value column names from a qualifier/tag structure
 }
 \examples{
 data(pocmaj)
-pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 values(pocmaj)
 
 }

@@ -2,11 +2,14 @@
 % Please edit documentation in R/qtag.R
 \name{long}
 \alias{long}
+\alias{long.default}
 \alias{long.qtag.long}
 \alias{long.qtag.wide}
 \title{Convert data to long format}
 \usage{
 long(x, ...)
+
+\method{long}{default}(x, ...)
 
 \method{long}{qtag.long}(x, ...)
 
@@ -25,7 +28,7 @@ Convert data to long format
 }
 \examples{
 data(pocmaj)
-pocmaj <- qtag(pocmaj, qualifiers = c("core", "depth"))
+pocmaj <- as.qtag(pocmaj, qualifiers = c("core", "depth"))
 long(pocmaj)
 
 }

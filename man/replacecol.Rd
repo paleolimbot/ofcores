@@ -25,7 +25,7 @@ except \link{qtag} objects have their qualifiers/tags/values attributes properly
 \examples{
 data(pocmaj)
 renamecol(pocmaj, Ca="Calcium")
-pocmaj2 <- qtag(pocmaj, qualifiers=c("core", "depth"))
+pocmaj2 <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 pocmaj2 <- renamecol(pocmaj2, Ca="Calcium")
 attr(pocmaj2, "values")
 

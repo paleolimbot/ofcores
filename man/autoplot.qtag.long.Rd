@@ -3,14 +3,19 @@
 \name{autoplot.qtag.long}
 \alias{autoplot.qtag.long}
 \alias{autoplot.qtag.wide}
+\alias{plotgg}
 \title{Autoplot a qualifier/tag structure}
 \usage{
-\method{autoplot}{qtag.long}(x, xvar, yvar, facets, subset, ...)
+\method{autoplot}{qtag.long}(x, subset, xvar, yvar, facets, ...)
 
 \method{autoplot}{qtag.wide}(x, ...)
+
+plotgg(x, ...)
 }
 \arguments{
 \item{x}{A \link{qtag} object}
+
+\item{subset}{Subset to plot}
 
 \item{xvar}{Column to be used on the x-axis}
 
@@ -18,7 +23,7 @@
 
 \item{facets}{Column to be used as facetting variable}
 
-\item{...}{Passed on to \code{aes()}}
+\item{...}{Passed on to \code{aes_string()}}
 }
 \value{
 A ggplot object
@@ -29,10 +34,13 @@ Autoplot a qualifier/tag structure
 \examples{
 library(ggplot2)
 data(pocmaj)
-pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
-autoplot(pocmaj)
-autoplot(pocmaj, subset=core=="MAJ-1" & column \%in\% c("Ca", "Ti"))
-autoplot(pocmaj, shape="core")
+plotgg(pocmaj)
+
+pocmajqt <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
+autoplot(pocmajqt)
+autoplot(pocmajqt, subset=core=="MAJ-1" & column \%in\% c("Ca", "Ti"))
+autoplot(pocmajqt, shape="core")
+
 
 }
 

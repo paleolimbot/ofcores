@@ -4,7 +4,8 @@
 #' @param xvar Column to be used on the x-axis
 #' @param yvar Column to be used on the y-axis
 #' @param facets Column to be used as facetting variable
-#' @param ... Passed on to \code{aes()}
+#' @param subset Subset to plot
+#' @param ... Passed on to \code{aes_string()}
 #'
 #' @return A ggplot object
 #'
@@ -14,19 +15,22 @@
 #' @examples
 #' library(ggplot2)
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
-#' autoplot(pocmaj)
-#' autoplot(pocmaj, subset=core=="MAJ-1" & column %in% c("Ca", "Ti"))
-#' autoplot(pocmaj, shape="core")
+#' plotgg(pocmaj)
 #'
-autoplot.qtag.long <- function(x, xvar, yvar, facets, subset, ...) {
+#' pocmajqt <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
+#' autoplot(pocmajqt)
+#' autoplot(pocmajqt, subset=core=="MAJ-1" & column %in% c("Ca", "Ti"))
+#' autoplot(pocmajqt, shape="core")
+#'
+#'
+autoplot.qtag.long <- function(x, subset, xvar, yvar, facets, ...) {
   x <- aggregate(x, mean, err=sd(., na.rm = TRUE)/sum(!is.na(.)))
   if(!missing(subset)) {
     x <- x[eval(substitute(subset), envir=x), ]
   }
   qualifiers <- attr(x, "qualifiers")
   values <- attr(x, "values")
-  mapping <- aes_string(...)
+  mapping <- ggplot2::aes_string(...)
   types <- sapply(qualifiers, function(qual) class(x[[qual]])[1])
   numqualifiers <- qualifiers[types %in% c("numeric", "integer")]
   nonnumqualifiers <- qualifiers[!(qualifiers %in% numqualifiers) & !(qualifiers %in% mapping)]
@@ -54,12 +58,12 @@ autoplot.qtag.long <- function(x, xvar, yvar, facets, subset, ...) {
       facet_scales <- "free_x"
     }
 
-    ggfacet <- facet_null()
+    ggfacet <- ggplot2::facet_null()
     nonnumindex <- length(nonnumqualifiers)
     if(missing(facets)) {
       if(length(nonnumqualifiers) > 0) {
         # use last non-numeric qualifier
-        ggfacet <- facet_wrap(as.formula(paste0("~", nonnumqualifiers[nonnumindex])), scales = facet_scales)
+        ggfacet <- ggplot2::facet_wrap(as.formula(paste0("~", nonnumqualifiers[nonnumindex])), scales = facet_scales)
         nonnumindex <- nonnumindex - 1
       } else {
         ggfacet <- facet_null()
@@ -68,7 +72,7 @@ autoplot.qtag.long <- function(x, xvar, yvar, facets, subset, ...) {
       ggfacet <- facet_null()
     } else if(attr(terms.formula(facets), "response") == 1) {
       # 2- sided formula
-      ggfacet <- facet_grid(facets, scales = facet_scales)
+      ggfacet <- ggplot2::facet_grid(facets, scales = facet_scales)
       chrfacets <- unlist(lapply(attr(terms.formula(facets), "variables")[-1], deparse))
       nonnumqualifiers <- nonnumqualifiers[!(nonnumqualifiers %in% chrfacets)]
       nonnumindex <- length(nonnumqualifiers)
@@ -81,11 +85,11 @@ autoplot.qtag.long <- function(x, xvar, yvar, facets, subset, ...) {
     }
 
     if((nonnumindex > 0) && !("colour" %in% names(mapping))) {
-      mapping <- c(mapping, aes_(colour=as.name(nonnumqualifiers[nonnumindex])))
+      mapping <- c(mapping, ggplot2::aes_(colour=as.name(nonnumqualifiers[nonnumindex])))
       nonnumindex <- nonnumindex - 1
     }
     if((nonnumindex > 0) && !("linetype" %in% names(mapping))) {
-      mapping <- c(mapping, aes_(shape=as.name(nonnumqualifiers[nonnumindex])))
+      mapping <- c(mapping, ggplot2::aes_(shape=as.name(nonnumqualifiers[nonnumindex])))
       nonnumindex <- nonnumindex - 1
     }
 
@@ -94,27 +98,27 @@ autoplot.qtag.long <- function(x, xvar, yvar, facets, subset, ...) {
       if(values == xvar) {
         nonvalrange <- range(x[yvar])
         errbarheight <- (nonvalrange[2]-nonvalrange[1]) / 50.0
-        errorbars <- geom_errorbarh(aes_string(xmin=sprintf("%s-%s", xvar, "err"),
+        errorbars <- ggplot2::geom_errorbarh(ggplot2::aes_string(xmin=sprintf("%s-%s", xvar, "err"),
                                                xmax=sprintf("%s+%s", xvar, "err")),
                                     height=errbarheight,
                                     linetype="solid")
       } else if(values == yvar) {
         nonvalrange <- range(x[xvar])
         errbarheight <- (nonvalrange[2]-nonvalrange[1]) / 50.0
-        errorbars <- geom_errorbar(aes_string(ymin=sprintf("%s-%s", yvar, "err"),
+        errorbars <- ggplot2::geom_errorbar(ggplot2::aes_string(ymin=sprintf("%s-%s", yvar, "err"),
                                               ymax=sprintf("%s+%s", yvar, "err")),
                                    width=errbarheight,
                                    linetype="solid")
       }
     }
 
-    yrev <- scale_y_reverse()
+    yrev <- ggplot2::scale_y_reverse()
     if(.is_ad(x[yvar])) {
       yrev <- NULL
     }
-    mapping <- c(mapping, aes_(x=as.name(xvar), y=as.name(yvar)))
+    mapping <- c(mapping, ggplot2::aes_(x=as.name(xvar), y=as.name(yvar)))
     class(mapping) <- "uneval"
-    return(ggplot(x, mapping) + geom_path() + errorbars + geom_point() + ggfacet + yrev)
+    return(ggplot2::ggplot(x, mapping) + ggplot2::geom_path() + errorbars + ggplot2::geom_point() + ggfacet + yrev)
   } else {
     stop("Cannot use autoplot with zero numeric qualifiers")
   }
@@ -125,3 +129,16 @@ autoplot.qtag.long <- function(x, xvar, yvar, facets, subset, ...) {
 autoplot.qtag.wide <- function(x, ...) {
   autoplot(long(x), ...)
 }
+
+#' @export
+#' @rdname autoplot.qtag.long
+#' @importFrom ggplot2 autoplot
+plotgg <- function(x, ...) {
+  autoplot(as.qtag(x), ...)
+}
+
+.is_ad <- function(x) {
+  r <- range(x)
+  return((r[2] <= 2200) && (r[1] >= 1000))
+}
+

@@ -1,12 +1,11 @@
 
 
-#' Construct a qualifier/tag structure
+#' Convert an object to a qualifier/tag structure
 #'
 #' @param df A \code{data.frame} or similar object
-#' @param values Column names containing the values of interest
-#' @param qualifiers Column names of qualifying values
-#' @param tags Column names of tag values
-#' @param summarised Pass \code{TRUE} for pre-summarised data.
+#' @param .values Column names containing the values of interest
+#' @param .qualifiers Column names of qualifying values
+#' @param .tags Column names of tag values
 #' @param quiet Use \code{quiet=TRUE} to suppress error messages
 #'
 #' @return An object of type \code{qtag}, which is essentially the unchanged
@@ -16,39 +15,40 @@
 #'
 #' @examples
 #' data("pocmaj")
-#' pocmaj <- qtag(pocmaj, qualifiers = c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers = c("core", "depth"))
 #' long(pocmaj)
 #' aggregate(pocmaj)
 #' aggregate(long(pocmaj))
 #'
-qtag <- function(df, values, qualifiers, tags, summarised=FALSE, quiet=FALSE) {
-  if("qtag" %in% class(df)) return(df)
+as.qtag <- function(df, .qualifiers, .values, .tags, quiet=FALSE) {
   dfnames <- names(df)
-  if(missing(qualifiers)) {
-    df$.row_id <- 1:nrow(df)
-    qualifiers <- ".row_id"
+  if(missing(.qualifiers)) {
+    .qualifiers <- qualifiers(df)
+    if(length(.qualifiers) == 0) {
+      df$.row_id <- 1:nrow(df)
+      .qualifiers <- ".row_id"
+    }
   } else {
-    qualifiers <- as.character(qualifiers)
+    .qualifiers <- as.character(.qualifiers)
   }
-  if(missing(tags)) {
-    tags <- NULL
+  if(missing(.tags)) {
+    .tags <- NULL
   } else {
-    tags <- as.character(tags)
+    .tags <- as.character(.tags)
   }
-  if(missing(values)) {
-    valuecol <- dfnames[!(dfnames %in% qualifiers) & !(dfnames %in% tags)]
+  if(missing(.values)) {
+    valuecol <- dfnames[!(dfnames %in% .qualifiers) & !(dfnames %in% .tags)]
     if(!quiet) message("Assuming value colums ", paste0("'", valuecol, "'", collapse = ", "))
   } else {
-    valuecol <- as.character(values)
+    valuecol <- as.character(.values)
     if(any(!(valuecol %in% dfnames))) stop("Could not find at least one column in value columns")
   }
 
   if(!quiet) {
-    ignored <- dfnames[!(dfnames %in% qualifiers) & !(dfnames %in% tags) & !(dfnames %in% valuecol)]
+    ignored <- dfnames[!(dfnames %in% .qualifiers) & !(dfnames %in% .tags) & !(dfnames %in% valuecol)]
     if(length(ignored) > 0) message("Ignoring columns ", paste0("'", ignored, "'", collapse=", "))
   }
-
-  return(.reclass(df, qualifiers, valuecol, tags, summarised))
+  return(.reclass(df, .qualifiers, valuecol, .tags, is.summarised(df, quiet=TRUE)))
 }
 
 .reclass <- function(df, qualifiers, values, tags, summarised) {
@@ -74,12 +74,25 @@ qtag <- function(df, values, qualifiers, tags, summarised=FALSE, quiet=FALSE) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' values(pocmaj)
 #'
-values <- function(x) {
-  return(attr(x, "values"))
+values <- function(x, quiet=FALSE) {
+  vals <- attr(x, "values")
+  if(!is.null(vals)) {
+    return(vals)
+  } else {
+    # assume values are all non qualifiers/non tags
+    nms <- names(x)
+    qlfrs <- qualifiers(x)
+    tgs <- tags(x)
+    vals <- nms[!(nms %in% c(qlfrs, tags))]
+    if(length(vals) == 0) stop("Zero value columns found")
+    if(!quiet) message("Assuming value columns ", paste0("'", vals, "'", collapse=", "))
+    return(vals)
+  }
 }
+
 
 #' Extract value qualifier names from a qualifier/tag structure
 #'
@@ -90,11 +103,37 @@ values <- function(x) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' qualifiers(pocmaj)
 #'
-qualifiers <- function(x) {
+qualifiers <- function(x, ...) UseMethod("qualifiers")
+
+#' @export
+#' @rdname qualifiers
+qualifiers.qtag <- function(x, ...) {
   return(attr(x, "qualifiers"))
+}
+
+#' @export
+#' @rdname qualifiers
+qualifiers.grouped_df <- function(x, ...) {
+  return(unlist(lapply(attr(x, "vars"), deparse)))
+}
+
+#' @export
+#' @rdname qualifiers
+qualifiers.data.frame <- function(x, ..., quiet=FALSE) {
+  cols <- names(x)
+  classes <- sapply(x, class)
+  nonnum <- cols[!(classes %in% c("integer", "numeric"))]
+  if("age" %in% cols && !("age" %in% nonnum)) {
+    nonnum <- c(nonnum, "age")
+  }
+  if("depth" %in% cols && !("depth" %in% nonnum)) {
+    nonnum <- c(nonnum, "depth")
+  }
+  if(!quiet) message("Assuming qualifiers ", paste0("'", nonnum, "'", collapse=", "))
+  return(nonnum)
 }
 
 #' Extract tag column names from a qualifier/tag structure
@@ -106,11 +145,33 @@ qualifiers <- function(x) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' tags(pocmaj)
 #'
 tags <- function(x) {
-  return(attr(x, "tags"))
+  return(attr(x, "tags")) # NULL is ok, since there are often no tags
+}
+
+
+#' Extract if the argument is already summarised
+#'
+#' Checks the \code{nrow()} of sub-data frames produced by \code{group_by()}.
+#' Returns \code{all(lengths==1)}.
+#'
+#' @param x The object
+#'
+#' @return \code{TRUE} if the argument is summarised, \code{FALSE} otherwise
+#' @export
+#'
+#' @examples
+#' data(pocmaj)
+#' pocmaj <- as.qtag(pocmaj, c("core", "depth"))
+#' is.summarised(pocmaj)
+#' is.summarised(aggregate(pocmaj))
+#'
+is.summarised <- function(x, quiet=FALSE) {
+  lengths <- dplyr::do(group(x, quiet=quiet), lengths=nrow(.))$lengths
+  return(all(lengths==1))
 }
 
 #' Extract value column data from a qualifier/tag structure
@@ -122,7 +183,7 @@ tags <- function(x) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' valuedata(pocmaj)
 #'
 valuedata <- function(x) {
@@ -138,7 +199,7 @@ valuedata <- function(x) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' qualifierdata(pocmaj)
 #'
 qualifierdata <- function(x) {
@@ -154,7 +215,7 @@ qualifierdata <- function(x) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' tagdata(pocmaj)
 #'
 tagdata <- function(x) {
@@ -171,7 +232,7 @@ tagdata <- function(x) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers = c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers = c("core", "depth"))
 #' long(pocmaj)
 #'
 long <- function(x, ...) {
@@ -189,7 +250,7 @@ long <- function(x, ...) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers = c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers = c("core", "depth"))
 #' pocmajlong <- long(pocmaj)
 #' wide(pocmajlong)
 #' wide(pocmaj)
@@ -201,6 +262,12 @@ wide <- function(x, ...) {
 
 #' @rdname long
 #' @export
+long.default <- function(x, ...) {
+  long(as.qtag(x), ...)
+}
+
+#' @rdname long
+#' @export
 long.qtag.long <- function(x, ...) {
   return(x)
 }
@@ -208,9 +275,9 @@ long.qtag.long <- function(x, ...) {
 #' @rdname long
 #' @export
 long.qtag.wide <- function(qtag, varname="column", quiet=FALSE) {
-  valuecol <- attr(qtag, "values")
-  qualifiers <- attr(qtag, "qualifiers")
-  tags <- attr(qtag, "tags")
+  valuecol <- values(qtag)
+  qualifiers <- qualifiers(qtag)
+  tags <- tags(qtag)
   dfmelt <- reshape2::melt(qtag[c(qualifiers, valuecol)], id.vars=qualifiers, measure.vars=valuecol, value.name="values", variable.name=varname)
   if(length(tags) > 0) {
     dfmelt <- merge(dfmelt, qtag[c(qualifiers, tags)], by=qualifiers, all.x=TRUE)
@@ -218,10 +285,16 @@ long.qtag.wide <- function(qtag, varname="column", quiet=FALSE) {
   attr(dfmelt, "values") <- "values"
   attr(dfmelt, "qualifiers") <- c(qualifiers, varname)
   attr(dfmelt, "tags") <- tags
-  attr(dfmelt, "summarised") <- attr(qtag, "summarised")
+  attr(dfmelt, "summarised") <- is.summarised(qtag)
   class(dfmelt) <- c("qtag.long", "qtag", class(dfmelt))
   if(!quiet) message("Assigning values column 'values' and qualifier '", varname, "'")
   return(dfmelt)
+}
+
+#' @rdname wide
+#' @export
+wide.default <- function(x, ...) {
+  wide(as.qtag(x), ...)
 }
 
 #' @rdname wide
@@ -233,7 +306,7 @@ wide.qtag.wide <- function(x) {
 #' @rdname wide
 #' @export
 wide.qtag.long <- function(qtag, colvar, fun.aggregate, ..., quiet=FALSE) {
-  qualifiers <- attr(qtag, "qualifiers")
+  qualifiers <- qualifirs(qtag)
   if(missing(colvar)) {
     # assume it is the last qualifier
     colvar <- qualifiers[length(qualifiers)]
@@ -242,12 +315,12 @@ wide.qtag.long <- function(qtag, colvar, fun.aggregate, ..., quiet=FALSE) {
   if(missing(fun.aggregate)) {
     # assume mean
     fun.aggregate <- mean
-    if(!attr(qtag, "summarised") && !quiet) message("Assuming aggregation function 'mean'")
+    if(!is.summarised(qtag) && !quiet) message("Assuming aggregation function 'mean'")
   }
   castvars <- qualifiers[qualifiers != colvar]
 
   dfwide <- reshape2::dcast(qtag, formula=as.formula(paste0(paste0("`", castvars, "`", collapse="+"), "~`", colvar, "`")),
-                  fun.aggregate=fun.aggregate, value.var=attr(qtag, "values"), ...)
+                  fun.aggregate=fun.aggregate, value.var=values(qtag), ...)
   dfnames <- names(df)
   attr(dfwide, "qualifiers") <- castvars
   attr(dfwide, "values") <- dfnames[!(dfnames %in% castvars)]
@@ -269,14 +342,14 @@ wide.qtag.long <- function(qtag, colvar, fun.aggregate, ..., quiet=FALSE) {
 #' @examples
 #' data(pocmaj)
 #' library(dplyr)
-#' pocmajqt <- qtag(pocmaj, qualifiers = c("core", "depth"))
+#' pocmajqt <- as.qtag(pocmaj, qualifiers = c("core", "depth"))
 #' pocmajqt %>% group() %>% summarise(mean(Ca))
 #' # equivalent to
 #' pocmaj %>% group_by(core, depth) %>% summarise(mean(Ca))
 #'
 #'
-group <- function(qtag) {
-  qualifiers <- attr(qtag, "qualifiers")
+group <- function(qtag, quiet=FALSE) {
+  qualifiers <- qualifiers(qtag, quiet=quiet)
   do.call(dplyr::group_by_, c(list(qtag), as.list(qualifiers)))
 }
 
@@ -295,18 +368,18 @@ group <- function(qtag) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmajqt <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmajqt <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' aggregate(pocmajqt)
 #' aggregate(pocmajqt, mean)
 #' aggregate(long(pocmajqt), mean, sd, length)
 #'
 aggregate.qtag.long <- function(x, ...) {
-  if(attr(x, "summarised")) return(x)
+  if(is.summarised(x)) return(x)
 
-  qualifiers <- attr(x, "qualifiers")
+  qualifiers <- qualifiers(x)
   funformats <- generate.call(...)
   argnames <- names(funformats)
-  values <- attr(x, "values")
+  values <- values(x)
   sumargs <- list()
   sumargs[[".vals"]] <- gsub(x=funformats[1], pattern="%s", replacement=values, fixed=TRUE)
   tags <- c()
@@ -330,16 +403,16 @@ aggregate.qtag.long <- function(x, ...) {
 #' @rdname aggregate.qtag.long
 #' @export
 aggregate.qtag.wide <- function(x, ...) {
-  if(attr(x, "summarised")) return(x)
+  if(is.summarised(x)) return(x)
 
-  qualifiers <- attr(x, "qualifiers")
+  qualifiers <- qualifiers(x)
   funformats <- generate.call(...)
   if(length(funformats) > 1) {
     # need to return as a brick
     stop("Not implemented")
     argnames <- names(funformat)
   }
-  values <- attr(x, "values")
+  values <- values(x)
 
   sumargs <- list()
   for(col in values) {
@@ -367,7 +440,7 @@ aggregate.qtag.wide <- function(x, ...) {
 #' @examples
 #' data(pocmaj)
 #' library(ggplot2)
-#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' fortify(pocmaj)
 #' ggplot(pocmaj, aes(x=values, y=depth, col=core)) + geom_point() +
 #'  scale_y_reverse() + facet_wrap(~column)
@@ -389,16 +462,16 @@ fortify.qtag <- function(x, skip_aggregate=FALSE, ...) {
 #'
 #' @examples
 #' data(pocmaj)
-#' pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' newrow <- data.frame(core="POC-2", depth=6, Ca=2100, Ti=4100, V=45)
 #' rbind(pocmaj, newrow)
 #'
 rbind.qtag.long <- function(...) {
   objs <- list(...)
-  qualifiers <- unique(unlist(lapply(objs, attr, "qualifiers")))
-  tags <- unique(unlist(lapply(objs, attr, "tags")))
-  values <- unique(unlist(lapply(objs, attr, "values")))
-  summarised <- sapply(objs, attr, "summarised")
+  qualifiers <- unique(unlist(lapply(objs, qualifiers)))
+  tags <- unique(unlist(lapply(objs, tags)))
+  values <- unique(unlist(lapply(objs, values)))
+  summarised <- sapply(objs, is.summarised)
   if(length(values) != 1) {
     stop("Arguments have multiple values columns: ", paste0("'", values, "'", collapse=", "))
   }
@@ -431,7 +504,7 @@ rbind.qtag <- function(...) {
 #' @examples
 #' data(pocmaj)
 #' renamecol(pocmaj, Ca="Calcium")
-#' pocmaj2 <- qtag(pocmaj, qualifiers=c("core", "depth"))
+#' pocmaj2 <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 #' pocmaj2 <- renamecol(pocmaj2, Ca="Calcium")
 #' attr(pocmaj2, "values")
 #'
@@ -445,10 +518,10 @@ replacecol.default <- function(x, ...) plyr::rename(x, list(...))
 replacecol.qtag <- function(x, ...) {
   replace <- list(...)
   out <- plyr::rename(x, replace)
-  attr(out, "qualifiers") <- replaceval(attr(x, "qualifiers"), replace)
-  attr(out, "values") <- replaceval(attr(x, "values"), replace)
-  attr(out, "tags") <- replaceval(attr(x, "tags"), replace)
-  attr(out, "summarised") <- attr(x, "summarised")
+  attr(out, "qualifiers") <- replaceval(qualifiers(x), replace)
+  attr(out, "values") <- replaceval(values(x), replace)
+  attr(out, "tags") <- replaceval(tags(x), replace)
+  attr(out, "summarised") <- is.summarised(x)
   class(out) <- class(x)
   return(out)
 }
@@ -511,9 +584,4 @@ generate.call <- function(..., .quiet=FALSE) {
     names(out) <- ""
     return(out)
   }
-}
-
-.is_ad <- function(x) {
-  r <- range(x)
-  return((r[2] <= 2200) && (r[1] >= 1000))
 }

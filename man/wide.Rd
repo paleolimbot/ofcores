@@ -2,11 +2,14 @@
 % Please edit documentation in R/qtag.R
 \name{wide}
 \alias{wide}
+\alias{wide.default}
 \alias{wide.qtag.long}
 \alias{wide.qtag.wide}
 \title{Convert data to wide format}
 \usage{
 wide(x, ...)
+
+\method{wide}{default}(x, ...)
 
 \method{wide}{qtag.wide}(x)
 
@@ -25,7 +28,7 @@ Convert data to wide format
 }
 \examples{
 data(pocmaj)
-pocmaj <- qtag(pocmaj, qualifiers = c("core", "depth"))
+pocmaj <- as.qtag(pocmaj, qualifiers = c("core", "depth"))
 pocmajlong <- long(pocmaj)
 wide(pocmajlong)
 wide(pocmaj)

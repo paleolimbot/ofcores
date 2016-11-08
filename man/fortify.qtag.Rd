@@ -22,7 +22,7 @@ Fortify a qualifier/tag structure for use in ggplot
 \examples{
 data(pocmaj)
 library(ggplot2)
-pocmaj <- qtag(pocmaj, qualifiers=c("core", "depth"))
+pocmaj <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 fortify(pocmaj)
 ggplot(pocmaj, aes(x=values, y=depth, col=core)) + geom_point() +
  scale_y_reverse() + facet_wrap(~column)
