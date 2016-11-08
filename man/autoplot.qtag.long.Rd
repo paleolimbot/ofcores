@@ -4,6 +4,7 @@
 \alias{autoplot.qtag.long}
 \alias{autoplot.qtag.wide}
 \alias{plotgg}
+\alias{plotother}
 \title{Autoplot a qualifier/tag structure}
 \usage{
 \method{autoplot}{qtag.long}(x, subset, xvar, yvar, facets, ...)
@@ -11,6 +12,9 @@
 \method{autoplot}{qtag.wide}(x, ...)
 
 plotgg(x, ...)
+
+plotother(x, subset, xvar, yvar, facets, colour = NULL,
+  fun = c("strat.plot.simple", "strat.plot", "Stratiplot"), ...)
 }
 \arguments{
 \item{x}{A \link{qtag} object}
@@ -34,7 +38,7 @@ Autoplot a qualifier/tag structure
 \examples{
 library(ggplot2)
 data(pocmaj)
-plotgg(pocmaj)
+plot.gg(pocmaj)
 
 pocmajqt <- as.qtag(pocmaj, qualifiers=c("core", "depth"))
 autoplot(pocmajqt)

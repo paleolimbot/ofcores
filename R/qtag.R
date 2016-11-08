@@ -306,7 +306,7 @@ wide.qtag.wide <- function(x) {
 #' @rdname wide
 #' @export
 wide.qtag.long <- function(qtag, colvar, fun.aggregate, ..., quiet=FALSE) {
-  qualifiers <- qualifirs(qtag)
+  qualifiers <- qualifiers(qtag)
   if(missing(colvar)) {
     # assume it is the last qualifier
     colvar <- qualifiers[length(qualifiers)]
@@ -321,7 +321,7 @@ wide.qtag.long <- function(qtag, colvar, fun.aggregate, ..., quiet=FALSE) {
 
   dfwide <- reshape2::dcast(qtag, formula=as.formula(paste0(paste0("`", castvars, "`", collapse="+"), "~`", colvar, "`")),
                   fun.aggregate=fun.aggregate, value.var=values(qtag), ...)
-  dfnames <- names(df)
+  dfnames <- names(dfwide)
   attr(dfwide, "qualifiers") <- castvars
   attr(dfwide, "values") <- dfnames[!(dfnames %in% castvars)]
   attr(dfwide, "summarised") <- TRUE
